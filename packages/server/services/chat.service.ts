@@ -1,44 +1,49 @@
-import OpenAI from "openai";
-import { conversationRepository } from "../repositories/conversation.repository";
-import template from "../prompts/chatbot.prompt.txt"
+import OpenAI from 'openai';
+import { conversationRepository } from '../repositories/conversation.repository';
+import template from '../prompts/chatbot.prompt.txt';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-})
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 const genAI = new GoogleGenerativeAI('YOUR_API_KEY');
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-const instructions = template.replace('{{information}}', '...')
+const instructions = template.replace('{{information}}', '...');
 
 type ChatResponse = {
-  id: string,
-  message: string
-}
+  id: string;
+  message: string;
+};
 
 export const chatService = {
-
-  async sendMessage(prompt: string, conversationId: string): Promise<ChatResponse> {
-
+  async sendMessage(
+    prompt: string,
+    conversationId: string
+  ): Promise<ChatResponse> {
     const response = await client.responses.create({
-      model: "gpt-4o-mini",
+      model: 'gpt-4o-mini',
       input: prompt,
       instructions: instructions,
       temperature: 0.2,
       max_output_tokens: 100,
-      previous_response_id: conversationRepository.getLastResponseId(conversationId)
-    })
+      previous_response_id:
+        conversationRepository.getLastResponseId(conversationId),
+    });
 
-    conversationRepository.setLastResponseId(conversationId, response.id)
+    conversationRepository.setLastResponseId(conversationId, response.id);
 
     return {
       id: response.id,
-      message: response.output_text
-    }
+      message: response.output_text,
+    };
   },
 
-  async  sendMessageWithGemini(prompt: string, conversationId: string): Promise<ChatResponse> {
+  async sendMessageWithGemini(
+    prompt: string,
+    conversationId: string
+  ): Promise<ChatResponse> {
     // It's crucial to retrieve the previous conversation history to maintain context.
     // The 'conversationRepository' would need to store and retrieve the full
     // chat history for a given 'conversationId'.
@@ -46,7 +51,6 @@ export const chatService = {
     // const conversationHistory = conversationRepository.getConversationHistory(conversationId);
 
     // For a basic text-only chat, we use the `gemini-1.5-flash` model.
-
 
     // Start a new chat session with the previous history.
     const chat = model.startChat({
@@ -72,8 +76,7 @@ export const chatService = {
 
     return {
       id: uniqueId,
-      message: text
+      message: text,
     };
-  }
-
-}
+  },
+};
