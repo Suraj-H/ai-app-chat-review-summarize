@@ -34,6 +34,8 @@ model Review {
   productId Int
   product   Product  @relation(fields: [productId], references: [id])
 
+  @@index([productId])
+  @@index([productId, createdAt])
   @@map("reviews")
 }
 
@@ -45,5 +47,16 @@ model Summary {
   productId   Int      @unique
   product     Product  @relation(fields: [productId], references: [id])
 
+  @@index([expiresAt])
   @@map("summaries")
+}
+
+model Conversation {
+  id            String   @id @default(uuid())
+  lastResponseId String? @db.VarChar(255)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([updatedAt])
+  @@map("conversations")
 }

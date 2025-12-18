@@ -1,6 +1,5 @@
-import { PrismaClient, type Product } from '../generated/prisma';
-
-const prisma = new PrismaClient();
+import type { Product } from '../generated/prisma';
+import { prisma } from './prisma';
 
 export const productRepository = {
   async getProduct(id: number): Promise<Product | null> {

@@ -1,7 +1,5 @@
 import type { Review, Summary } from '../generated/prisma';
-import { PrismaClient } from '../generated/prisma';
-
-const prisma = new PrismaClient();
+import { prisma } from './prisma';
 
 export const reviewRepository = {
   async getReviews(productId: number, limit?: number): Promise<Review[]> {
@@ -9,14 +7,23 @@ export const reviewRepository = {
       where: { productId },
       orderBy: { createdAt: 'desc' },
       take: limit,
+      select: {
+        id: true,
+        author: true,
+        rating: true,
+        content: true,
+        createdAt: true,
+        productId: true,
+      },
     });
   },
 
   async storeReviewSummary(
     productId: number,
-    summary: string
+    summary: string,
+    expiryDays: number = 7
   ): Promise<Summary> {
-    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7); // 7 days from now
+    const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * expiryDays);
     const now = new Date();
 
     return prisma.summary.upsert({

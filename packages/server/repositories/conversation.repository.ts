@@ -1,10 +1,22 @@
-const conversations = new Map<string, string>();
+import { prisma } from './prisma';
 
 export const conversationRepository = {
-  getLastResponseId(conversationId: string) {
-    return conversations.get(conversationId);
+  async getLastResponseId(conversationId: string): Promise<string | null> {
+    const conversation = await prisma.conversation.findUnique({
+      where: { id: conversationId },
+      select: { lastResponseId: true },
+    });
+    return conversation?.lastResponseId ?? null;
   },
-  setLastResponseId(conversationId: string, responseId: string) {
-    conversations.set(conversationId, responseId);
+
+  async setLastResponseId(
+    conversationId: string,
+    responseId: string
+  ): Promise<void> {
+    await prisma.conversation.upsert({
+      where: { id: conversationId },
+      update: { lastResponseId: responseId },
+      create: { id: conversationId, lastResponseId: responseId },
+    });
   },
 };
