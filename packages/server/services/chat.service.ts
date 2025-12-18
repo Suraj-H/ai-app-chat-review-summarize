@@ -1,7 +1,9 @@
-import OpenAI from 'openai';
-import { conversationRepository } from '../repositories/conversation.repository';
-import template from '../prompts/chatbot.prompt.txt';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import fs from 'fs';
+import OpenAI from 'openai';
+import path from 'path';
+import template from '../prompts/chatbot.prompt.txt';
+import { conversationRepository } from '../repositories/conversation.repository';
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -10,7 +12,11 @@ const client = new OpenAI({
 const genAI = new GoogleGenerativeAI('YOUR_API_KEY');
 const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-const instructions = template.replace('{{information}}', '...');
+const parkInfo = fs.readFileSync(
+  path.join(__dirname, '..', 'prompts', 'wonderworld.md'),
+  'utf8'
+);
+const instructions = template.replace('{{parkInfo}}', parkInfo);
 
 type ChatResponse = {
   id: string;
@@ -27,7 +33,7 @@ export const chatService = {
       input: prompt,
       instructions: instructions,
       temperature: 0.2,
-      max_output_tokens: 100,
+      max_output_tokens: 50,
       previous_response_id:
         conversationRepository.getLastResponseId(conversationId),
     });

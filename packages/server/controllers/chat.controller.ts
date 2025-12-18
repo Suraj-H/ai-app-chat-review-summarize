@@ -14,8 +14,9 @@ const chatSchema = z.object({
 export const chatController = {
   async sendMessage(req: Request, res: Response) {
     const parseResult = chatSchema.safeParse(req.body);
+
     if (!parseResult.success) {
-      res.status(400).json(parseResult.error.format);
+      res.status(400).json(z.treeifyError(parseResult.error));
       return;
     }
 
@@ -26,7 +27,7 @@ export const chatController = {
 
       res.json({ message: response.message });
     } catch (error) {
-      res.status(500).send({ message: 'Failed to generate a response!' });
+      res.status(500).json({ error: 'Failed to generate a response!' });
     }
   },
 };
