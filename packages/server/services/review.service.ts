@@ -1,3 +1,4 @@
+import { REVIEW_LIMIT, SUMMARY_EXPIRY_DAYS } from '../config/constants';
 import type { Review } from '../generated/prisma';
 import { llmClient } from '../llm/client';
 import summarizeReviewsPromptTemplate from '../llm/prompts/summarize-reviews.txt';
@@ -15,7 +16,7 @@ export const reviewService = {
       return existingSummary;
     }
 
-    const reviews = await reviewRepository.getReviews(productId, 10);
+    const reviews = await reviewRepository.getReviews(productId, REVIEW_LIMIT);
 
     if (reviews.length === 0) {
       return null;
@@ -31,8 +32,6 @@ export const reviewService = {
     // summarize with OpenAI LLM
     const { text: summary } = await llmClient.generateText({
       prompt,
-      temperature: 0.2,
-      maxTokens: 50,
       model: 'gpt-4o-mini',
     });
 
@@ -42,7 +41,11 @@ export const reviewService = {
     // summarize with Ollama LLM
     // const summary = await llmClient.summarizeWithOllama(reviewsText);
 
-    await reviewRepository.storeReviewSummary(productId, summary);
+    await reviewRepository.storeReviewSummary(
+      productId,
+      summary,
+      SUMMARY_EXPIRY_DAYS
+    );
 
     return summary;
   },

@@ -1,15 +1,17 @@
 import { InferenceClient } from '@huggingface/inference';
 import { Ollama } from 'ollama';
 import OpenAI from 'openai';
+import { DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from '../config/constants';
+import { env } from '../config/env';
 import summarizePrompt from './prompts/summarize.txt';
 
 const ollamaClient = new Ollama();
 
 const openAIClient = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: env.OPENAI_API_KEY,
 });
 
-const inferenceClient = new InferenceClient(process.env.HF_TOKEN);
+const inferenceClient = new InferenceClient(env.HF_TOKEN);
 
 type GenerateTextOptions = {
   prompt: string;
@@ -28,19 +30,21 @@ type GenerateTextResponse = {
 export const llmClient = {
   async generateText({
     prompt,
-    temperature = 0.2,
-    maxTokens = 50,
+    temperature = DEFAULT_TEMPERATURE,
+    maxTokens = DEFAULT_MAX_TOKENS,
     model = 'gpt-4o-mini',
     instructions,
     previousResponseId,
   }: GenerateTextOptions): Promise<GenerateTextResponse> {
+    // Using new Responses API (superset of Chat Completions)
+    // Benefits: Built-in conversation continuity, simpler API, better state management
     const response = await openAIClient.responses.create({
       model,
       input: prompt,
-      temperature: temperature,
-      max_output_tokens: maxTokens,
       instructions: instructions,
       previous_response_id: previousResponseId,
+      temperature,
+      max_output_tokens: maxTokens,
     });
 
     return {

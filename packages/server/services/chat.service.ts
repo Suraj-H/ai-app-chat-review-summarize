@@ -1,18 +1,26 @@
-import fs from 'fs';
+import { DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from '../config/constants';
+import { env } from '../config/env';
 import OpenAI from 'openai';
-import path from 'path';
 import template from '../llm/prompts/chatbot.prompt.txt';
 import { conversationRepository } from '../repositories/conversation.repository';
 
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: env.OPENAI_API_KEY,
 });
 
-const parkInfo = fs.readFileSync(
-  path.join(__dirname, '..', 'llm/prompts', 'wonderworld.md'),
-  'utf8'
-);
-const instructions = template.replace('{{parkInfo}}', parkInfo);
+// Lazy load park info using Bun's native file API
+let instructionsCache: string | null = null;
+
+async function getInstructions(): Promise<string> {
+  if (instructionsCache) return instructionsCache;
+
+  const parkInfoFile = Bun.file(
+    `${import.meta.dir}/../llm/prompts/wonderworld.md`
+  );
+  const parkInfo = await parkInfoFile.text();
+  instructionsCache = template.replace('{{parkInfo}}', parkInfo);
+  return instructionsCache;
+}
 
 type ChatResponse = {
   id: string;
@@ -24,21 +32,31 @@ export const chatService = {
     prompt: string,
     conversationId: string
   ): Promise<ChatResponse> {
+    // Get previous response ID from database for conversation continuity
+    const previousResponseId =
+      await conversationRepository.getLastResponseId(conversationId);
+
+    const instructions = await getInstructions();
+
+    // Using new Responses API with built-in conversation continuity
     const response = await client.responses.create({
       model: 'gpt-4o-mini',
       input: prompt,
       instructions: instructions,
-      temperature: 0.2,
-      max_output_tokens: 50,
-      previous_response_id:
-        conversationRepository.getLastResponseId(conversationId),
+      previous_response_id: previousResponseId,
+      temperature: DEFAULT_TEMPERATURE,
+      max_output_tokens: DEFAULT_MAX_TOKENS,
     });
 
-    conversationRepository.setLastResponseId(conversationId, response.id);
+    const message = response.output_text ?? '';
+    const responseId = response.id;
+
+    // Store conversation state in database for next request
+    await conversationRepository.setLastResponseId(conversationId, responseId);
 
     return {
-      id: response.id,
-      message: response.output_text,
+      id: responseId,
+      message,
     };
   },
 };
