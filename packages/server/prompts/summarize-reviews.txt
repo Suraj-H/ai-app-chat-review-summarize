@@ -1,0 +1,4 @@
+Summarize the following customer reviews for a product into a short paragraph highlighting key themes and customer satisfaction, both positive and negative:
+
+    Reviews:
+    {{reviews}}
