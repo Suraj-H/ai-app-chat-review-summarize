@@ -1,8 +1,15 @@
+import { InferenceClient } from '@huggingface/inference';
+import { Ollama } from 'ollama';
 import OpenAI from 'openai';
+import summarizePrompt from './prompts/summarize.txt';
 
-const client = new OpenAI({
+const ollamaClient = new Ollama();
+
+const openAIClient = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+const inferenceClient = new InferenceClient(process.env.HF_TOKEN);
 
 type GenerateTextOptions = {
   prompt: string;
@@ -27,7 +34,7 @@ export const llmClient = {
     instructions,
     previousResponseId,
   }: GenerateTextOptions): Promise<GenerateTextResponse> {
-    const response = await client.responses.create({
+    const response = await openAIClient.responses.create({
       model,
       input: prompt,
       temperature: temperature,
@@ -40,5 +47,39 @@ export const llmClient = {
       id: response.id,
       text: response.output_text ?? '',
     };
+  },
+
+  async summarize(text: string): Promise<string> {
+    const output = await inferenceClient.chatCompletion({
+      model: 'meta-llama/Llama-3.1-8B-Instruct:novita',
+      messages: [
+        {
+          role: 'system',
+          content: summarizePrompt,
+        },
+        {
+          role: 'user',
+          content: text,
+        },
+      ],
+    });
+    return output?.choices[0]?.message.content ?? '';
+  },
+
+  async summarizeWithOllama(text: string): Promise<string> {
+    const response = await ollamaClient.chat({
+      model: 'llama3.1',
+      messages: [
+        {
+          role: 'system',
+          content: summarizePrompt,
+        },
+        {
+          role: 'user',
+          content: text,
+        },
+      ],
+    });
+    return response.message.content ?? '';
   },
 };

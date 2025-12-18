@@ -1,6 +1,6 @@
-import type { Review, Summary } from '../generated/prisma';
+import type { Review } from '../generated/prisma';
 import { llmClient } from '../llm/client';
-import summarizeReviewsPromptTemplate from '../prompts/summarize-reviews.txt';
+import summarizeReviewsPromptTemplate from '../llm/prompts/summarize-reviews.txt';
 import { reviewRepository } from '../repositories/review.repository';
 
 export const reviewService = {
@@ -28,12 +28,19 @@ export const reviewService = {
       reviewsText
     );
 
+    // summarize with OpenAI LLM
     const { text: summary } = await llmClient.generateText({
       prompt,
       temperature: 0.2,
       maxTokens: 50,
       model: 'gpt-4o-mini',
     });
+
+    // summarize with Hugging Face InferenceClient LLM
+    // const summary = await llmClient.summarize(reviewsText);
+
+    // summarize with Ollama LLM
+    // const summary = await llmClient.summarizeWithOllama(reviewsText);
 
     await reviewRepository.storeReviewSummary(productId, summary);
 
