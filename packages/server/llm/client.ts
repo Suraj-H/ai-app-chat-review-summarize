@@ -3,6 +3,7 @@ import { Ollama } from 'ollama';
 import OpenAI from 'openai';
 import { DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from '../config/constants';
 import { env } from '../config/env';
+import { DEFAULT_LLM_MODEL, LLM_MODELS, LLMRole } from '../config/llm';
 import summarizePrompt from './prompts/summarize.txt';
 
 const ollamaClient = new Ollama();
@@ -32,12 +33,10 @@ export const llmClient = {
     prompt,
     temperature = DEFAULT_TEMPERATURE,
     maxTokens = DEFAULT_MAX_TOKENS,
-    model = 'gpt-4o-mini',
+    model = DEFAULT_LLM_MODEL,
     instructions,
     previousResponseId,
   }: GenerateTextOptions): Promise<GenerateTextResponse> {
-    // Using new Responses API (superset of Chat Completions)
-    // Benefits: Built-in conversation continuity, simpler API, better state management
     const response = await openAIClient.responses.create({
       model,
       input: prompt,
@@ -55,14 +54,14 @@ export const llmClient = {
 
   async summarize(text: string): Promise<string> {
     const output = await inferenceClient.chatCompletion({
-      model: 'meta-llama/Llama-3.1-8B-Instruct:novita',
+      model: LLM_MODELS.META_LLAMA_3_1_8B,
       messages: [
         {
-          role: 'system',
+          role: LLMRole.SYSTEM,
           content: summarizePrompt,
         },
         {
-          role: 'user',
+          role: LLMRole.USER,
           content: text,
         },
       ],
@@ -72,14 +71,14 @@ export const llmClient = {
 
   async summarizeWithOllama(text: string): Promise<string> {
     const response = await ollamaClient.chat({
-      model: 'llama3.1',
+      model: LLM_MODELS.LLAMA_3_1,
       messages: [
         {
-          role: 'system',
+          role: LLMRole.SYSTEM,
           content: summarizePrompt,
         },
         {
-          role: 'user',
+          role: LLMRole.USER,
           content: text,
         },
       ],

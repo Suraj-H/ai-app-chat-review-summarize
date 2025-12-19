@@ -1,3 +1,16 @@
+/**
+ * Application constants
+ *
+ * For domain-specific constants, see:
+ * - config/errors.ts - Error messages and codes
+ * - config/http.ts - HTTP status codes and methods
+ * - config/routes.ts - API route paths
+ * - config/llm.ts - LLM models and roles
+ * - config/logging.ts - Log messages and levels
+ * - config/validation.ts - Validation messages
+ * - config/templates.ts - Template placeholders
+ */
+
 export const REVIEW_LIMIT = 10;
 export const SUMMARY_EXPIRY_DAYS = 7;
 

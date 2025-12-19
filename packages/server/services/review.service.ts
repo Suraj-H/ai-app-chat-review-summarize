@@ -1,4 +1,6 @@
 import { REVIEW_LIMIT, SUMMARY_EXPIRY_DAYS } from '../config/constants';
+import { DEFAULT_LLM_MODEL } from '../config/llm';
+import { TEMPLATE_PLACEHOLDERS } from '../config/templates';
 import type { Review } from '../generated/prisma';
 import { llmClient } from '../llm/client';
 import summarizeReviewsPromptTemplate from '../llm/prompts/summarize-reviews.txt';
@@ -25,14 +27,14 @@ export const reviewService = {
     const reviewsText = reviews.map((review) => review.content).join('\n\n');
 
     const prompt = summarizeReviewsPromptTemplate.replace(
-      '{{reviews}}',
+      TEMPLATE_PLACEHOLDERS.REVIEWS,
       reviewsText
     );
 
     // summarize with OpenAI LLM
     const { text: summary } = await llmClient.generateText({
       prompt,
-      model: 'gpt-4o-mini',
+      model: DEFAULT_LLM_MODEL,
     });
 
     // summarize with Hugging Face InferenceClient LLM

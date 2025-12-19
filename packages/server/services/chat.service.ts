@@ -1,6 +1,8 @@
+import OpenAI from 'openai';
 import { DEFAULT_MAX_TOKENS, DEFAULT_TEMPERATURE } from '../config/constants';
 import { env } from '../config/env';
-import OpenAI from 'openai';
+import { DEFAULT_LLM_MODEL } from '../config/llm';
+import { TEMPLATE_PLACEHOLDERS } from '../config/templates';
 import template from '../llm/prompts/chatbot.prompt.txt';
 import { conversationRepository } from '../repositories/conversation.repository';
 
@@ -8,7 +10,6 @@ const client = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
 });
 
-// Lazy load park info using Bun's native file API
 let instructionsCache: string | null = null;
 
 async function getInstructions(): Promise<string> {
@@ -18,7 +19,10 @@ async function getInstructions(): Promise<string> {
     `${import.meta.dir}/../llm/prompts/wonderworld.md`
   );
   const parkInfo = await parkInfoFile.text();
-  instructionsCache = template.replace('{{parkInfo}}', parkInfo);
+  instructionsCache = template.replace(
+    TEMPLATE_PLACEHOLDERS.PARK_INFO,
+    parkInfo
+  );
   return instructionsCache;
 }
 
@@ -32,15 +36,13 @@ export const chatService = {
     prompt: string,
     conversationId: string
   ): Promise<ChatResponse> {
-    // Get previous response ID from database for conversation continuity
     const previousResponseId =
       await conversationRepository.getLastResponseId(conversationId);
 
     const instructions = await getInstructions();
 
-    // Using new Responses API with built-in conversation continuity
     const response = await client.responses.create({
-      model: 'gpt-4o-mini',
+      model: DEFAULT_LLM_MODEL,
       input: prompt,
       instructions: instructions,
       previous_response_id: previousResponseId,
@@ -51,7 +53,6 @@ export const chatService = {
     const message = response.output_text ?? '';
     const responseId = response.id;
 
-    // Store conversation state in database for next request
     await conversationRepository.setLastResponseId(conversationId, responseId);
 
     return {

@@ -1,7 +1,14 @@
-import type { Request, Response, NextFunction } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 import { env } from '../config/env';
+import {
+  ERROR_MESSAGES,
+  ERROR_TYPES,
+  ErrorCode,
+  PRISMA_ERROR_CODES,
+} from '../config/errors';
+import { HTTP_STATUS } from '../config/http';
+import { LOG_MESSAGES } from '../config/logging';
 
-// Type guard for Prisma errors (PrismaClientKnownRequestError has a 'code' property starting with 'P')
 function isPrismaKnownRequestError(err: unknown): err is { code: string } {
   return (
     err !== null &&
@@ -18,8 +25,7 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  // Log error details
-  console.error('Error:', {
+  console.error(LOG_MESSAGES.ERROR, {
     message: err.message,
     stack: env.NODE_ENV === 'development' ? err.stack : undefined,
     path: req.path,
@@ -27,44 +33,41 @@ export const errorHandler = (
     timestamp: new Date().toISOString(),
   });
 
-  // Handle Prisma-specific errors
   if (isPrismaKnownRequestError(err)) {
     switch (err.code) {
-      case 'P2002':
-        return res.status(409).json({
-          error: 'Resource already exists',
-          code: 'UNIQUE_CONSTRAINT_VIOLATION',
+      case PRISMA_ERROR_CODES.UNIQUE_CONSTRAINT_VIOLATION:
+        return res.status(HTTP_STATUS.CONFLICT).json({
+          error: ERROR_MESSAGES.RESOURCE_ALREADY_EXISTS,
+          code: ErrorCode.UNIQUE_CONSTRAINT_VIOLATION,
         });
-      case 'P2025':
-        return res.status(404).json({
-          error: 'Resource not found',
-          code: 'RECORD_NOT_FOUND',
+      case PRISMA_ERROR_CODES.RECORD_NOT_FOUND:
+        return res.status(HTTP_STATUS.NOT_FOUND).json({
+          error: ERROR_MESSAGES.RESOURCE_NOT_FOUND,
+          code: ErrorCode.RECORD_NOT_FOUND,
         });
-      case 'P2003':
-        return res.status(400).json({
-          error: 'Invalid reference',
-          code: 'FOREIGN_KEY_CONSTRAINT',
+      case PRISMA_ERROR_CODES.FOREIGN_KEY_CONSTRAINT:
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          error: ERROR_MESSAGES.INVALID_REFERENCE,
+          code: ErrorCode.FOREIGN_KEY_CONSTRAINT,
         });
       default:
-        console.error('Unhandled Prisma error:', err.code);
-        return res.status(500).json({
-          error: 'Database error',
-          code: 'DATABASE_ERROR',
+        console.error(LOG_MESSAGES.UNHANDLED_PRISMA_ERROR, err.code);
+        return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+          error: ERROR_MESSAGES.DATABASE_ERROR,
+          code: ErrorCode.DATABASE_ERROR,
         });
     }
   }
 
-  // Handle validation errors (Zod errors have a specific structure)
-  if (err.name === 'ZodError') {
-    return res.status(400).json({
-      error: 'Validation failed',
+  if (err.name === ERROR_TYPES.ZOD_ERROR) {
+    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+      error: ERROR_MESSAGES.VALIDATION_FAILED,
       details: (err as any).issues,
     });
   }
 
-  // Default error response
-  res.status(500).json({
-    error: 'Internal server error',
+  res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    error: ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
     ...(env.NODE_ENV === 'development' && {
       message: err.message,
       stack: err.stack,

@@ -1,16 +1,20 @@
 import type { Request, Response } from 'express';
 import z from 'zod';
 import { MAX_PROMPT_LENGTH } from '../config/constants';
+import { ERROR_MESSAGES } from '../config/errors';
+import { HTTP_STATUS } from '../config/http';
+import { LOG_MESSAGES } from '../config/logging';
+import { VALIDATION_MESSAGES } from '../config/validation';
 import { chatService } from '../services/chat.service';
 
 const chatSchema = z.object({
   prompt: z
     .string()
     .trim()
-    .min(1, 'Prompt is required.')
+    .min(1, VALIDATION_MESSAGES.PROMPT_REQUIRED)
     .max(
       MAX_PROMPT_LENGTH,
-      `Prompt is too long (max ${MAX_PROMPT_LENGTH} characters).`
+      VALIDATION_MESSAGES.PROMPT_TOO_LONG(MAX_PROMPT_LENGTH)
     ),
   conversationId: z.uuid(),
 });
@@ -20,7 +24,9 @@ export const chatController = {
     const parseResult = chatSchema.safeParse(req.body);
 
     if (!parseResult.success) {
-      res.status(400).json(z.treeifyError(parseResult.error));
+      res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json(z.treeifyError(parseResult.error));
       return;
     }
 
@@ -31,14 +37,16 @@ export const chatController = {
 
       res.json({ message: response.message });
     } catch (error: any) {
-      console.error('Chat service error:', {
+      console.error(LOG_MESSAGES.CHAT_SERVICE_ERROR, {
         message: error?.message,
         code: error?.code,
         type: error?.type,
         param: error?.param,
       });
 
-      res.status(500).json({ error: 'Failed to generate a response!' });
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        error: ERROR_MESSAGES.FAILED_TO_GENERATE_RESPONSE,
+      });
     }
   },
 };

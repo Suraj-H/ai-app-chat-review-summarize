@@ -1,32 +1,31 @@
 import type { Request, Response } from 'express';
 import morgan from 'morgan';
 import { env } from '../config/env';
+import { HTTP_METHODS } from '../config/http';
+import { MORGAN_TOKENS } from '../config/logging';
+import { ROUTES } from '../config/routes';
 
-// Custom token for response time in milliseconds
 morgan.token('response-time-ms', (req, res) => {
-  const responseTime = (res as any)['response-time'];
+  const responseTime = (res as any)[MORGAN_TOKENS.RESPONSE_TIME];
   if (!responseTime) return '';
   return `${Math.round(parseFloat(responseTime))}ms`;
 });
 
-// Development logger: Colored, concise format
-// Example: GET /api/chat 200 45ms - 1234
 const devLogger = morgan(
   ':method :url :status :response-time-ms - :res[content-length]',
   {
     skip: (req: Request) => {
-      return req.path === '/health' || req.method === 'OPTIONS';
+      return req.path === ROUTES.HEALTH || req.method === HTTP_METHODS.OPTIONS;
     },
   }
 );
 
-// Production logger: Structured JSON format
 const prodLogger = morgan(
   (tokens: any, req: Request, res: Response): string => {
     const method = tokens.method?.(req, res) || '';
     const url = tokens.url?.(req, res) || '';
     const status = tokens.status?.(req, res) || '0';
-    const responseTime = tokens['response-time']?.(req, res) || '0';
+    const responseTime = tokens[MORGAN_TOKENS.RESPONSE_TIME]?.(req, res) || '0';
     const ip = tokens['remote-addr']?.(req, res) || '';
     const userAgent = tokens['user-agent']?.(req, res) || '';
 
@@ -43,14 +42,13 @@ const prodLogger = morgan(
   {
     skip: (req: Request, res: Response) => {
       return (
-        req.path === '/health' ||
-        req.method === 'OPTIONS' ||
-        res.statusCode < 400 // Only log errors in production
+        req.path === ROUTES.HEALTH ||
+        req.method === HTTP_METHODS.OPTIONS ||
+        res.statusCode < 400
       );
     },
   }
 );
 
-// Export the appropriate logger based on environment
 export const requestLogger =
   env.NODE_ENV === 'development' ? devLogger : prodLogger;

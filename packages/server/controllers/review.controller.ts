@@ -1,5 +1,7 @@
 import type { Request, Response } from 'express';
 import z from 'zod';
+import { ERROR_MESSAGES } from '../config/errors';
+import { HTTP_STATUS } from '../config/http';
 import { productRepository } from '../repositories/product.repository';
 import { reviewService } from '../services/review.service';
 
@@ -12,21 +14,27 @@ export const reviewController = {
     const parseResult = reviewSchema.safeParse(req.params);
 
     if (!parseResult.success) {
-      res.status(400).json(z.treeifyError(parseResult.error));
+      res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json(z.treeifyError(parseResult.error));
       return;
     }
 
     const { productId } = parseResult.data;
 
     if (isNaN(productId)) {
-      res.status(400).json({ error: 'Invalid product.' });
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        error: ERROR_MESSAGES.INVALID_PRODUCT,
+      });
       return;
     }
 
     const product = await productRepository.getProduct(productId);
 
     if (!product) {
-      res.status(400).json({ error: 'Invalid product.' });
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        error: ERROR_MESSAGES.INVALID_PRODUCT,
+      });
       return;
     }
 
@@ -35,7 +43,9 @@ export const reviewController = {
       const summary = await reviewService.getReviewSummary(productId);
       res.json({ summary, reviews });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to get reviews!' });
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        error: ERROR_MESSAGES.FAILED_TO_GET_REVIEWS,
+      });
     }
   },
 
@@ -43,21 +53,27 @@ export const reviewController = {
     const parseResult = reviewSchema.safeParse(req.params);
 
     if (!parseResult.success) {
-      res.status(400).json(z.treeifyError(parseResult.error));
+      res
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json(z.treeifyError(parseResult.error));
       return;
     }
 
     const { productId } = parseResult.data;
 
     if (isNaN(productId)) {
-      res.status(400).json({ error: 'Invalid product.' });
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        error: ERROR_MESSAGES.INVALID_PRODUCT,
+      });
       return;
     }
 
     const product = await productRepository.getProduct(productId);
 
     if (!product) {
-      res.status(400).json({ error: 'Invalid product.' });
+      res.status(HTTP_STATUS.BAD_REQUEST).json({
+        error: ERROR_MESSAGES.INVALID_PRODUCT,
+      });
       return;
     }
 
@@ -65,15 +81,17 @@ export const reviewController = {
       const summary = await reviewService.summarizeReviews(productId);
 
       if (!summary) {
-        res.status(400).json({
-          error: 'There are no reviews for this product to summarize.',
+        res.status(HTTP_STATUS.BAD_REQUEST).json({
+          error: ERROR_MESSAGES.NO_REVIEWS_TO_SUMMARIZE,
         });
         return;
       }
 
       res.json({ summary });
     } catch (error) {
-      res.status(500).json({ error: 'Failed to summarize reviews!' });
+      res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+        error: ERROR_MESSAGES.FAILED_TO_SUMMARIZE_REVIEWS,
+      });
     }
   },
 };
