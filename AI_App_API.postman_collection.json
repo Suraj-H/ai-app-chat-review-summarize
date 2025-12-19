@@ -1,0 +1,216 @@
+{
+	"info": {
+		"_postman_id": "ai-app-api-collection",
+		"name": "AI App API",
+		"description": "Complete API collection for AI App application with chat and product review features. Base URL: http://localhost:3000",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Chat",
+			"item": [
+				{
+					"name": "Send Chat Message",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    pm.collectionVariables.set('lastMessage', jsonData.message);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"prompt\": \"What attractions are available at WonderWorld?\",\n  \"conversationId\": \"{{conversationId}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/chat",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "chat"]
+						},
+						"description": "Send a chat message to the AI assistant. The prompt must be 1-1000 characters. conversationId must be a valid UUID. For a new conversation, generate a new UUID. The conversationId maintains conversation context across multiple messages."
+					},
+					"response": []
+				}
+			],
+			"description": "Chat endpoints for AI assistant interactions"
+		},
+		{
+			"name": "Products",
+			"item": [
+				{
+					"name": "Get Reviews with Summary",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.reviews && jsonData.reviews.length > 0) {",
+									"        pm.collectionVariables.set('reviewCount', jsonData.reviews.length);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/products/:productId/reviews",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "products", ":productId", "reviews"],
+							"variable": [
+								{
+									"key": "productId",
+									"value": "{{productId}}",
+									"description": "Product ID (integer)"
+								}
+							]
+						},
+						"description": "Get all reviews for a product along with the summary (if available and not expired). Returns reviews sorted by creation date (newest first). Summary expires after 7 days. If no summary exists or it's expired, summary will be null."
+					},
+					"response": []
+				},
+				{
+					"name": "Summarize Reviews",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const jsonData = pm.response.json();",
+									"    if (jsonData.summary) {",
+									"        pm.collectionVariables.set('lastSummary', jsonData.summary);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/products/:productId/reviews/summarize",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "products", ":productId", "reviews", "summarize"],
+							"variable": [
+								{
+									"key": "productId",
+									"value": "{{productId}}",
+									"description": "Product ID (integer)"
+								}
+							]
+						},
+						"description": "Generate or refresh a summary of product reviews using AI. Uses the latest 10 reviews. If a valid summary already exists (not expired), returns the cached summary. Otherwise, generates a new summary using OpenAI and stores it for 7 days. Returns error if product has no reviews."
+					},
+					"response": []
+				}
+			],
+			"description": "Product review management endpoints"
+		},
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Health check endpoint. Returns server status. This endpoint is excluded from rate limiting and request logging."
+					},
+					"response": []
+				}
+			],
+			"description": "Health check endpoint"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000",
+			"type": "string"
+		},
+		{
+			"key": "conversationId",
+			"value": "550e8400-e29b-41d4-a716-446655440000",
+			"type": "string",
+			"description": "UUID for conversation context. Generate a new UUID for each new conversation."
+		},
+		{
+			"key": "productId",
+			"value": "1",
+			"type": "string",
+			"description": "Product ID (integer). Update this with a valid product ID from your database."
+		},
+		{
+			"key": "lastMessage",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "lastSummary",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "reviewCount",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
